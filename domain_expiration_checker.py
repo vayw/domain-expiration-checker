@@ -7,6 +7,8 @@ import json
 import os.path
 import logging
 import configparser
+import ssl, socket
+
 try:
     import boto3
     from whois import whois
@@ -100,6 +102,22 @@ def createconfig(settings):
     settings['ROUTE53'] = {'KEY': '', 'KEYID': ''}
     with open(SETTINGSFILE, 'w') as config:
         settings.write(config)
+
+def certs_check(domains_list, cachedata={}):
+    result = {'code': 0, 'msg': ''}
+    for name in domains_list:
+        if domain not in cachedata:
+            ctx = ssl.create_default_context()
+            s = ctx.wrap_socket(socket.socket(), server_hostname=hostname)
+            s.connect((hostname, 443))
+            cert = s.getpeercert()
+            s.close()
+            exp_date = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+        else:
+            exp_date = datetime.fromtimestamp(cachedata[domain])
+        now = datetime.now()
+        delta = exp_date - now
+    return result 
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
